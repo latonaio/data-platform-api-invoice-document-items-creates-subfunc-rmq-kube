@@ -1,8 +1,8 @@
 package api_processing_data_formatter
 
 import (
-	api_input_reader "data-platform-api-invoice-document-headers-creates-subfunc-rmq/API_Input_Reader"
-	"data-platform-api-invoice-document-headers-creates-subfunc-rmq/DPFM_API_Caller/requests"
+	api_input_reader "data-platform-api-invoice-document-items-creates-subfunc-rmq/API_Input_Reader"
+	"data-platform-api-invoice-document-items-creates-subfunc-rmq/DPFM_API_Caller/requests"
 	"database/sql"
 	"fmt"
 )
@@ -23,29 +23,46 @@ func (psdc *SDC) ConvertToMetaData(sdc *api_input_reader.SDC) (*MetaData, error)
 	return &metaData, nil
 }
 
-func (psdc *SDC) ConvertToOrderIDKey(sdc *api_input_reader.SDC) (*OrderIDKey, error) {
+func (psdc *SDC) ConvertToOrderIDByNumberSpecificationKey(sdc *api_input_reader.SDC, length int) (*OrderIDKey, error) {
 	pm := &requests.OrderIDKey{
-		HeaderCompleteDeliveryIsDefined: getBoolPtr(false),
-		OverallDeliveryStatus:           "CL",
+		HeaderCompleteDeliveryIsDefined: getBoolPtr(true),
+		HeaderDeliveryStatus:            "CL",
+		HeaderBillingStatus:             "CL",
+		HeaderBillingBlockStatus:        getBoolPtr(false),
 	}
-	data := pm
 
+	for i := 0; i < length; i++ {
+		pm.BillFromParty = append(pm.BillFromParty, nil)
+		pm.BillToParty = append(pm.BillToParty, nil)
+	}
+
+	data := pm
 	orderIDKey := OrderIDKey{
+		OrderID:                         data.OrderID,
+		BillFromPartyFrom:               data.BillFromPartyFrom,
+		BillFromPartyTo:                 data.BillFromPartyTo,
+		BillToPartyFrom:                 data.BillToPartyFrom,
+		BillToPartyTo:                   data.BillToPartyTo,
+		BillFromParty:                   data.BillFromParty,
+		BillToParty:                     data.BillToParty,
 		HeaderCompleteDeliveryIsDefined: data.HeaderCompleteDeliveryIsDefined,
-		OverallDeliveryStatus:           data.OverallDeliveryStatus,
+		HeaderDeliveryStatus:            data.HeaderDeliveryStatus,
+		HeaderBillingStatus:             data.HeaderBillingStatus,
+		HeaderBillingBlockStatus:        data.HeaderBillingBlockStatus,
 	}
 
 	return &orderIDKey, nil
 }
 
-func (psdc *SDC) ConvertToOrderID(
+func (psdc *SDC) ConvertToOrderIDByNumberSpecification(
 	sdc *api_input_reader.SDC,
 	rows *sql.Rows,
 ) (*[]OrderID, error) {
 	var orderID []OrderID
-	pm := &requests.OrderID{}
 
 	for i := 0; true; i++ {
+		pm := &requests.OrderID{}
+
 		if !rows.Next() {
 			if i == 0 {
 				return nil, fmt.Errorf("DBに対象のレコードが存在しません。")
@@ -55,8 +72,12 @@ func (psdc *SDC) ConvertToOrderID(
 		}
 		err := rows.Scan(
 			&pm.OrderID,
+			&pm.BillFromParty,
+			&pm.BillToParty,
 			&pm.HeaderCompleteDeliveryIsDefined,
-			&pm.OverallDeliveryStatus,
+			&pm.HeaderDeliveryStatus,
+			&pm.HeaderBillingStatus,
+			&pm.HeaderBillingBlockStatus,
 		)
 		if err != nil {
 			fmt.Printf("err = %+v \n", err)
@@ -65,38 +86,276 @@ func (psdc *SDC) ConvertToOrderID(
 
 		data := pm
 		orderID = append(orderID, OrderID{
+			InvoiceDocument:                 data.InvoiceDocument,
 			OrderID:                         data.OrderID,
+			BillFromPartyFrom:               data.BillFromPartyFrom,
+			BillFromPartyTo:                 data.BillFromPartyTo,
+			BillToPartyFrom:                 data.BillToPartyFrom,
+			BillToPartyTo:                   data.BillToPartyTo,
+			BillFromParty:                   data.BillFromParty,
+			BillToParty:                     data.BillToParty,
 			HeaderCompleteDeliveryIsDefined: data.HeaderCompleteDeliveryIsDefined,
-			OverallDeliveryStatus:           data.OverallDeliveryStatus,
+			HeaderDeliveryStatus:            data.HeaderDeliveryStatus,
+			HeaderBillingStatus:             data.HeaderBillingStatus,
+			HeaderBillingBlockStatus:        data.HeaderBillingBlockStatus,
 		})
 	}
 
 	return &orderID, nil
 }
 
-func (psdc *SDC) ConvertToDeliveryDocumentKey(sdc *api_input_reader.SDC) (*DeliveryDocumentKey, error) {
-	pm := &requests.DeliveryDocumentKey{
-		CompleteDeliveryIsDefined: getBoolPtr(false),
-		OverallDeliveryStatus:     "CL",
+func (psdc *SDC) ConvertToOrderIDByRangeSpecificationKey(sdc *api_input_reader.SDC) (*OrderIDKey, error) {
+	pm := &requests.OrderIDKey{
+		HeaderCompleteDeliveryIsDefined: getBoolPtr(true),
+		HeaderDeliveryStatus:            "CL",
+		HeaderBillingStatus:             "CL",
+		HeaderBillingBlockStatus:        getBoolPtr(false),
 	}
 	data := pm
 
+	orderIDKey := OrderIDKey{
+		OrderID:                         data.OrderID,
+		BillFromPartyFrom:               data.BillFromPartyFrom,
+		BillFromPartyTo:                 data.BillFromPartyTo,
+		BillToPartyFrom:                 data.BillToPartyFrom,
+		BillToPartyTo:                   data.BillToPartyTo,
+		BillFromParty:                   data.BillFromParty,
+		BillToParty:                     data.BillToParty,
+		HeaderCompleteDeliveryIsDefined: data.HeaderCompleteDeliveryIsDefined,
+		HeaderDeliveryStatus:            data.HeaderDeliveryStatus,
+		HeaderBillingStatus:             data.HeaderBillingStatus,
+		HeaderBillingBlockStatus:        data.HeaderBillingBlockStatus,
+	}
+
+	return &orderIDKey, nil
+}
+
+func (psdc *SDC) ConvertToOrderIDByRangeSpecification(
+	sdc *api_input_reader.SDC,
+	rows *sql.Rows,
+) (*[]OrderID, error) {
+	var orderID []OrderID
+
+	for i := 0; true; i++ {
+		pm := &requests.OrderID{}
+
+		if !rows.Next() {
+			if i == 0 {
+				return nil, fmt.Errorf("DBに対象のレコードが存在しません。")
+			} else {
+				break
+			}
+		}
+		err := rows.Scan(
+			&pm.OrderID,
+			&pm.BillFromParty,
+			&pm.BillToParty,
+			&pm.HeaderCompleteDeliveryIsDefined,
+			&pm.HeaderDeliveryStatus,
+			&pm.HeaderBillingStatus,
+			&pm.HeaderBillingBlockStatus,
+		)
+		if err != nil {
+			fmt.Printf("err = %+v \n", err)
+			return nil, err
+		}
+
+		data := pm
+		orderID = append(orderID, OrderID{
+			InvoiceDocument:                 data.InvoiceDocument,
+			OrderID:                         data.OrderID,
+			BillFromPartyFrom:               data.BillFromPartyFrom,
+			BillFromPartyTo:                 data.BillFromPartyTo,
+			BillToPartyFrom:                 data.BillToPartyFrom,
+			BillToPartyTo:                   data.BillToPartyTo,
+			BillFromParty:                   data.BillFromParty,
+			BillToParty:                     data.BillToParty,
+			HeaderCompleteDeliveryIsDefined: data.HeaderCompleteDeliveryIsDefined,
+			HeaderDeliveryStatus:            data.HeaderDeliveryStatus,
+			HeaderBillingStatus:             data.HeaderBillingStatus,
+			HeaderBillingBlockStatus:        data.HeaderBillingBlockStatus,
+		})
+	}
+
+	return &orderID, nil
+}
+
+func (psdc *SDC) ConvertToOrderIDByReferenceDocumentKey(sdc *api_input_reader.SDC) (*OrderIDKey, error) {
+	pm := &requests.OrderIDKey{
+		HeaderCompleteDeliveryIsDefined: getBoolPtr(false),
+		HeaderDeliveryStatus:            "CL",
+		HeaderBillingBlockStatus:        getBoolPtr(false),
+	}
+	data := pm
+
+	orderIDKey := OrderIDKey{
+		OrderID:                         data.OrderID,
+		BillFromParty:                   data.BillFromParty,
+		BillToParty:                     data.BillToParty,
+		HeaderCompleteDeliveryIsDefined: data.HeaderCompleteDeliveryIsDefined,
+		HeaderDeliveryStatus:            data.HeaderDeliveryStatus,
+		HeaderBillingStatus:             data.HeaderBillingStatus,
+		HeaderBillingBlockStatus:        data.HeaderBillingBlockStatus,
+	}
+
+	return &orderIDKey, nil
+}
+
+func (psdc *SDC) ConvertToOrderIDByReferenceDocument(
+	sdc *api_input_reader.SDC,
+	rows *sql.Rows,
+) (*[]OrderID, error) {
+	var orderID []OrderID
+
+	for i := 0; true; i++ {
+		pm := &requests.OrderID{}
+
+		if !rows.Next() {
+			if i == 0 {
+				return nil, fmt.Errorf("DBに対象のレコードが存在しません。")
+			} else {
+				break
+			}
+		}
+		err := rows.Scan(
+			&pm.OrderID,
+			&pm.BillFromParty,
+			&pm.BillToParty,
+			&pm.HeaderCompleteDeliveryIsDefined,
+			&pm.HeaderDeliveryStatus,
+			&pm.HeaderBillingBlockStatus,
+		)
+		if err != nil {
+			fmt.Printf("err = %+v \n", err)
+			return nil, err
+		}
+
+		data := pm
+		orderID = append(orderID, OrderID{
+			InvoiceDocument:                 data.InvoiceDocument,
+			OrderID:                         data.OrderID,
+			BillFromParty:                   data.BillFromParty,
+			BillToParty:                     data.BillToParty,
+			HeaderCompleteDeliveryIsDefined: data.HeaderCompleteDeliveryIsDefined,
+			HeaderDeliveryStatus:            data.HeaderDeliveryStatus,
+			HeaderBillingStatus:             data.HeaderBillingStatus,
+			HeaderBillingBlockStatus:        data.HeaderBillingBlockStatus,
+		})
+	}
+
+	return &orderID, nil
+}
+
+func (psdc *SDC) ConvertToOrderItemKey(sdc *api_input_reader.SDC, length int) (*OrderItemKey, error) {
+	pm := &requests.OrderItemKey{
+		ItemCompleteDeliveryIsDefined: getBoolPtr(true),
+		ItemDeliveryStatus:            "CL",
+		ItemBillingStatus:             "CL",
+		ItemBillingBlockStatus:        getBoolPtr(false),
+	}
+
+	for i := 0; i < length; i++ {
+		pm.OrderID = append(pm.OrderID, nil)
+	}
+
+	data := pm
+
+	orderItemKey := OrderItemKey{
+		InvoiceDocument:               data.InvoiceDocument,
+		OrderID:                       data.OrderID,
+		ItemCompleteDeliveryIsDefined: data.ItemCompleteDeliveryIsDefined,
+		ItemDeliveryStatus:            data.ItemDeliveryStatus,
+		ItemBillingStatus:             data.ItemBillingStatus,
+		ItemBillingBlockStatus:        data.ItemBillingBlockStatus,
+	}
+
+	return &orderItemKey, nil
+}
+
+func (psdc *SDC) ConvertToOrderItem(
+	sdc *api_input_reader.SDC,
+	rows *sql.Rows,
+) (*[]OrderItem, error) {
+	var orderItem []OrderItem
+
+	for i := 0; true; i++ {
+		pm := &requests.OrderItem{}
+
+		if !rows.Next() {
+			if i == 0 {
+				return nil, fmt.Errorf("DBに対象のレコードが存在しません。")
+			} else {
+				break
+			}
+		}
+		err := rows.Scan(
+			&pm.OrderID,
+			&pm.ItemCompleteDeliveryIsDefined,
+			&pm.ItemDeliveryStatus,
+			&pm.ItemBillingStatus,
+			&pm.ItemBillingBlockStatus,
+			&pm.OrderItem,
+		)
+		if err != nil {
+			fmt.Printf("err = %+v \n", err)
+			return nil, err
+		}
+
+		data := pm
+		orderItem = append(orderItem, OrderItem{
+			InvoiceDocument:               data.InvoiceDocument,
+			OrderID:                       data.OrderID,
+			ItemCompleteDeliveryIsDefined: data.ItemCompleteDeliveryIsDefined,
+			ItemDeliveryStatus:            data.ItemDeliveryStatus,
+			ItemBillingStatus:             data.ItemBillingStatus,
+			ItemBillingBlockStatus:        data.ItemBillingBlockStatus,
+			OrderItem:                     data.OrderItem,
+		})
+	}
+
+	return &orderItem, nil
+}
+
+func (psdc *SDC) ConvertToDeliveryDocumentByNumberSpecificationKey(sdc *api_input_reader.SDC, length int) (*DeliveryDocumentKey, error) {
+	pm := &requests.DeliveryDocumentKey{
+		HeaderCompleteDeliveryIsDefined: getBoolPtr(true),
+		HeaderDeliveryStatus:            "CL",
+		HeaderBillingStatus:             "CL",
+		HeaderBillingBlockStatus:        getBoolPtr(false),
+	}
+
+	for i := 0; i < length; i++ {
+		pm.BillFromParty = append(pm.BillFromParty, nil)
+		pm.BillToParty = append(pm.BillToParty, nil)
+	}
+
+	data := pm
 	deliveryDocumentKey := DeliveryDocumentKey{
-		CompleteDeliveryIsDefined: data.CompleteDeliveryIsDefined,
-		OverallDeliveryStatus:     data.OverallDeliveryStatus,
+		DeliveryDocument:                data.DeliveryDocument,
+		BillFromPartyFrom:               data.BillFromPartyFrom,
+		BillFromPartyTo:                 data.BillFromPartyTo,
+		BillToPartyFrom:                 data.BillToPartyFrom,
+		BillToPartyTo:                   data.BillToPartyTo,
+		BillFromParty:                   data.BillFromParty,
+		BillToParty:                     data.BillToParty,
+		HeaderCompleteDeliveryIsDefined: data.HeaderCompleteDeliveryIsDefined,
+		HeaderDeliveryStatus:            data.HeaderDeliveryStatus,
+		HeaderBillingStatus:             data.HeaderBillingStatus,
+		HeaderBillingBlockStatus:        data.HeaderBillingBlockStatus,
 	}
 
 	return &deliveryDocumentKey, nil
 }
 
-func (psdc *SDC) ConvertToDeliveryDocument(
+func (psdc *SDC) ConvertToDeliveryDocumentByNumberSpecification(
 	sdc *api_input_reader.SDC,
 	rows *sql.Rows,
 ) (*[]DeliveryDocument, error) {
 	var deliveryDocument []DeliveryDocument
-	pm := &requests.DeliveryDocument{}
 
 	for i := 0; true; i++ {
+		pm := &requests.DeliveryDocument{}
+
 		if !rows.Next() {
 			if i == 0 {
 				return nil, fmt.Errorf("DBに対象のレコードが存在しません。")
@@ -106,8 +365,12 @@ func (psdc *SDC) ConvertToDeliveryDocument(
 		}
 		err := rows.Scan(
 			&pm.DeliveryDocument,
-			&pm.CompleteDeliveryIsDefined,
-			&pm.OverallDeliveryStatus,
+			&pm.BillFromParty,
+			&pm.BillToParty,
+			&pm.HeaderCompleteDeliveryIsDefined,
+			&pm.HeaderDeliveryStatus,
+			&pm.HeaderBillingStatus,
+			&pm.HeaderBillingBlockStatus,
 		)
 		if err != nil {
 			fmt.Printf("err = %+v \n", err)
@@ -116,15 +379,250 @@ func (psdc *SDC) ConvertToDeliveryDocument(
 
 		data := pm
 		deliveryDocument = append(deliveryDocument, DeliveryDocument{
-			DeliveryDocument:          data.DeliveryDocument,
-			CompleteDeliveryIsDefined: data.CompleteDeliveryIsDefined,
-			OverallDeliveryStatus:     data.OverallDeliveryStatus,
+			InvoiceDocument:                 data.InvoiceDocument,
+			DeliveryDocument:                data.DeliveryDocument,
+			BillFromPartyFrom:               data.BillFromPartyFrom,
+			BillFromPartyTo:                 data.BillFromPartyTo,
+			BillToPartyFrom:                 data.BillToPartyFrom,
+			BillToPartyTo:                   data.BillToPartyTo,
+			BillFromParty:                   data.BillFromParty,
+			BillToParty:                     data.BillToParty,
+			HeaderCompleteDeliveryIsDefined: data.HeaderCompleteDeliveryIsDefined,
+			HeaderDeliveryStatus:            data.HeaderDeliveryStatus,
+			HeaderBillingStatus:             data.HeaderBillingStatus,
+			HeaderBillingBlockStatus:        data.HeaderBillingBlockStatus,
 		})
 	}
 
 	return &deliveryDocument, nil
 }
 
+func (psdc *SDC) ConvertToDeliveryDocumentByRangeSpecificationKey(sdc *api_input_reader.SDC) (*DeliveryDocumentKey, error) {
+	pm := &requests.DeliveryDocumentKey{
+		HeaderCompleteDeliveryIsDefined: getBoolPtr(true),
+		HeaderDeliveryStatus:            "CL",
+		HeaderBillingStatus:             "CL",
+		HeaderBillingBlockStatus:        getBoolPtr(false),
+	}
+	data := pm
+
+	deliveryDocumentKey := DeliveryDocumentKey{
+		DeliveryDocument:                data.DeliveryDocument,
+		BillFromPartyFrom:               data.BillFromPartyFrom,
+		BillFromPartyTo:                 data.BillFromPartyTo,
+		BillToPartyFrom:                 data.BillToPartyFrom,
+		BillToPartyTo:                   data.BillToPartyTo,
+		BillFromParty:                   data.BillFromParty,
+		BillToParty:                     data.BillToParty,
+		HeaderCompleteDeliveryIsDefined: data.HeaderCompleteDeliveryIsDefined,
+		HeaderDeliveryStatus:            data.HeaderDeliveryStatus,
+		HeaderBillingStatus:             data.HeaderBillingStatus,
+		HeaderBillingBlockStatus:        data.HeaderBillingBlockStatus,
+	}
+
+	return &deliveryDocumentKey, nil
+}
+
+func (psdc *SDC) ConvertToDeliveryDocumentByRangeSpecification(
+	sdc *api_input_reader.SDC,
+	rows *sql.Rows,
+) (*[]DeliveryDocument, error) {
+	var deliveryDocument []DeliveryDocument
+
+	for i := 0; true; i++ {
+		pm := &requests.DeliveryDocument{}
+
+		if !rows.Next() {
+			if i == 0 {
+				return nil, fmt.Errorf("DBに対象のレコードが存在しません。")
+			} else {
+				break
+			}
+		}
+		err := rows.Scan(
+			&pm.DeliveryDocument,
+			&pm.BillFromParty,
+			&pm.BillToParty,
+			&pm.HeaderCompleteDeliveryIsDefined,
+			&pm.HeaderDeliveryStatus,
+			&pm.HeaderBillingStatus,
+			&pm.HeaderBillingBlockStatus,
+		)
+		if err != nil {
+			fmt.Printf("err = %+v \n", err)
+			return nil, err
+		}
+
+		data := pm
+		deliveryDocument = append(deliveryDocument, DeliveryDocument{
+			InvoiceDocument:                 data.InvoiceDocument,
+			DeliveryDocument:                data.DeliveryDocument,
+			BillFromPartyFrom:               data.BillFromPartyFrom,
+			BillFromPartyTo:                 data.BillFromPartyTo,
+			BillToPartyFrom:                 data.BillToPartyFrom,
+			BillToPartyTo:                   data.BillToPartyTo,
+			BillFromParty:                   data.BillFromParty,
+			BillToParty:                     data.BillToParty,
+			HeaderCompleteDeliveryIsDefined: data.HeaderCompleteDeliveryIsDefined,
+			HeaderDeliveryStatus:            data.HeaderDeliveryStatus,
+			HeaderBillingStatus:             data.HeaderBillingStatus,
+			HeaderBillingBlockStatus:        data.HeaderBillingBlockStatus,
+		})
+	}
+
+	return &deliveryDocument, nil
+}
+
+func (psdc *SDC) ConvertToDeliveryDocumentByReferenceDocumentKey(sdc *api_input_reader.SDC) (*DeliveryDocumentKey, error) {
+	pm := &requests.DeliveryDocumentKey{
+		HeaderCompleteDeliveryIsDefined: getBoolPtr(true),
+		HeaderDeliveryStatus:            "CL",
+		HeaderBillingStatus:             "CL",
+		HeaderBillingBlockStatus:        getBoolPtr(false),
+	}
+	data := pm
+
+	deliveryDocumentKey := DeliveryDocumentKey{
+		DeliveryDocument:                data.DeliveryDocument,
+		BillFromParty:                   data.BillFromParty,
+		BillToParty:                     data.BillToParty,
+		HeaderCompleteDeliveryIsDefined: data.HeaderCompleteDeliveryIsDefined,
+		HeaderDeliveryStatus:            data.HeaderDeliveryStatus,
+		HeaderBillingStatus:             data.HeaderBillingStatus,
+		HeaderBillingBlockStatus:        data.HeaderBillingBlockStatus,
+	}
+
+	return &deliveryDocumentKey, nil
+}
+
+func (psdc *SDC) ConvertToDeliveryDocumentByReferenceDocument(
+	sdc *api_input_reader.SDC,
+	rows *sql.Rows,
+) (*[]DeliveryDocument, error) {
+	var deliveryDocument []DeliveryDocument
+
+	for i := 0; true; i++ {
+		pm := &requests.DeliveryDocument{}
+
+		if !rows.Next() {
+			if i == 0 {
+				return nil, fmt.Errorf("DBに対象のレコードが存在しません。")
+			} else {
+				break
+			}
+		}
+		err := rows.Scan(
+			&pm.DeliveryDocument,
+			&pm.BillFromParty,
+			&pm.BillToParty,
+			&pm.HeaderCompleteDeliveryIsDefined,
+			&pm.HeaderDeliveryStatus,
+			&pm.HeaderBillingStatus,
+			&pm.HeaderBillingBlockStatus,
+		)
+		if err != nil {
+			fmt.Printf("err = %+v \n", err)
+			return nil, err
+		}
+
+		data := pm
+		deliveryDocument = append(deliveryDocument, DeliveryDocument{
+			InvoiceDocument:                 data.InvoiceDocument,
+			DeliveryDocument:                data.DeliveryDocument,
+			BillFromParty:                   data.BillFromParty,
+			BillToParty:                     data.BillToParty,
+			HeaderCompleteDeliveryIsDefined: data.HeaderCompleteDeliveryIsDefined,
+			HeaderDeliveryStatus:            data.HeaderDeliveryStatus,
+			HeaderBillingStatus:             data.HeaderBillingStatus,
+			HeaderBillingBlockStatus:        data.HeaderBillingBlockStatus,
+		})
+	}
+
+	return &deliveryDocument, nil
+}
+
+func (psdc *SDC) ConvertToDeliveryDocumentItemKey(sdc *api_input_reader.SDC, length int) (*DeliveryDocumentItemKey, error) {
+	pm := &requests.DeliveryDocumentItemKey{
+		ItemCompleteDeliveryIsDefined: getBoolPtr(true),
+		ItemDeliveryStatus:            "CL",
+		ItemBillingStatus:             "CL",
+		ItemBillingBlockStatus:        getBoolPtr(false),
+	}
+
+	for i := 0; i < length; i++ {
+		pm.DeliveryDocument = append(pm.DeliveryDocument, nil)
+	}
+
+	data := pm
+
+	deliveryDocumentItemKey := DeliveryDocumentItemKey{
+		DeliveryDocument:              data.DeliveryDocument,
+		ConfirmedDeliveryDateFrom:     data.ConfirmedDeliveryDateFrom,
+		ConfirmedDeliveryDateTo:       data.ConfirmedDeliveryDateTo,
+		ActualGoodsIssueDateFrom:      data.ActualGoodsIssueDateFrom,
+		ActualGoodsIssueDateTo:        data.ActualGoodsIssueDateTo,
+		ConfirmedDeliveryDate:         data.ConfirmedDeliveryDate,
+		ActualGoodsIssueDate:          data.ActualGoodsIssueDate,
+		ItemCompleteDeliveryIsDefined: data.ItemCompleteDeliveryIsDefined,
+		ItemDeliveryStatus:            data.ItemDeliveryStatus,
+		ItemBillingStatus:             data.ItemBillingStatus,
+		ItemBillingBlockStatus:        data.ItemBillingBlockStatus,
+	}
+
+	return &deliveryDocumentItemKey, nil
+}
+
+func (psdc *SDC) ConvertToDeliveryDocumentItem(
+	sdc *api_input_reader.SDC,
+	rows *sql.Rows,
+) (*[]DeliveryDocumentItem, error) {
+	var deliveryDocumentItem []DeliveryDocumentItem
+
+	for i := 0; true; i++ {
+		pm := &requests.DeliveryDocumentItem{}
+
+		if !rows.Next() {
+			if i == 0 {
+				return nil, fmt.Errorf("DBに対象のレコードが存在しません。")
+			} else {
+				break
+			}
+		}
+		err := rows.Scan(
+			&pm.DeliveryDocument,
+			&pm.ConfirmedDeliveryDate,
+			&pm.ActualGoodsIssueDate,
+			&pm.ItemCompleteDeliveryIsDefined,
+			&pm.ItemDeliveryStatus,
+			&pm.ItemBillingStatus,
+			&pm.ItemBillingBlockStatus,
+			&pm.DeliveryDocumentItem,
+		)
+		if err != nil {
+			fmt.Printf("err = %+v \n", err)
+			return nil, err
+		}
+
+		data := pm
+		deliveryDocumentItem = append(deliveryDocumentItem, DeliveryDocumentItem{
+			InvoiceDocument:               data.InvoiceDocument,
+			DeliveryDocument:              data.DeliveryDocument,
+			ConfirmedDeliveryDateFrom:     data.ConfirmedDeliveryDateFrom,
+			ConfirmedDeliveryDateTo:       data.ConfirmedDeliveryDateTo,
+			ActualGoodsIssueDateFrom:      data.ActualGoodsIssueDateFrom,
+			ActualGoodsIssueDateTo:        data.ActualGoodsIssueDateTo,
+			ConfirmedDeliveryDate:         data.ConfirmedDeliveryDate,
+			ActualGoodsIssueDate:          data.ActualGoodsIssueDate,
+			ItemCompleteDeliveryIsDefined: data.ItemCompleteDeliveryIsDefined,
+			ItemDeliveryStatus:            data.ItemDeliveryStatus,
+			ItemBillingStatus:             data.ItemBillingStatus,
+			ItemBillingBlockStatus:        data.ItemBillingBlockStatus,
+			DeliveryDocumentItem:          data.DeliveryDocumentItem,
+		})
+	}
+
+	return &deliveryDocumentItem, nil
+}
 func getBoolPtr(b bool) *bool {
 	return &b
 }
@@ -201,36 +699,13 @@ func (psdc *SDC) ConvertToCalculateInvoiceDocument(
 	return &calculateInvoiceDocument, nil
 }
 
-func (psdc *SDC) ConvertToOrderItemKey(sdc *api_input_reader.SDC, orderID *[]OrderID) (*[]OrderItemKey, error) {
-
-	var orderItemKey []OrderItemKey
-	var pm []requests.OrderItemKey
-	for _, v := range *orderID {
-		pm = append(pm, requests.OrderItemKey{
-			OrderID:                   v.OrderID,
-			ItemInvoiceDocumentStatus: getBoolPtr(false),
-		})
-	}
-
-	data := pm
-
-	for _, v := range data {
-		orderItemKey = append(orderItemKey, OrderItemKey{
-			OrderID:                   v.OrderID,
-			ItemInvoiceDocumentStatus: v.ItemInvoiceDocumentStatus,
-		})
-	}
-
-	return &orderItemKey, nil
-}
-
-func (psdc *SDC) ConvertToOrderItem(
+func (psdc *SDC) ConvertToItemOrdersItem(
 	sdc *api_input_reader.SDC,
 	rows *sql.Rows,
-) (*[]OrderItem, error) {
-	var orderItem []OrderItem
+) (*[]ItemOrdersItem, error) {
+	var itemOrdersItem []ItemOrdersItem
 
-	pm := &requests.OrderItem{}
+	pm := &requests.ItemOrdersItem{}
 
 	for i := 0; true; i++ {
 		if !rows.Next() {
@@ -241,70 +716,41 @@ func (psdc *SDC) ConvertToOrderItem(
 			}
 		}
 		err := rows.Scan(
-			&pm.ItemInvoiceDocumentStatus,
-			&pm.InvoiceDocumentItem,
-			&pm.DocumentItemCategory,
-			&pm.CreationDate,
-			&pm.CreationTime,
-			&pm.Division,
-			&pm.Customer,
-			&pm.Supplier,
-			&pm.DeliverToParty,
-			&pm.DeliverFromParty,
-			&pm.Product,
-			&pm.ProductStandardID,
-			&pm.Batch,
-			&pm.ProductGroup,
-			&pm.IssuingPlant,
-			&pm.IssuingPlantStorageLocation,
-			&pm.ReceivingPlant,
-			&pm.ReceivingPlantStorageLocation,
-			&pm.InvoiceDocumentItemText,
-			&pm.ServicesRenderedDate,
-			&pm.InvoiceQuantity,
-			&pm.InvoiceQuantityUnit,
-			&pm.InvoiceQuantityInBaseUnit,
-			&pm.BaseUnit,
-			&pm.ActualGoodsIssueDate,
-			&pm.ActualGoodsIssueTime,
-			&pm.ActualGoodsReceiptDate,
-			&pm.ActualGoodsReceiptTime,
-			&pm.ItemGrossWeight,
-			&pm.ItemNetWeight,
-			&pm.ItemWeightUnit,
-			&pm.ItemVolume,
-			&pm.ItemVolumeUnit,
-			&pm.NetAmount,
-			&pm.GoodsIssueOrReceiptSlipNumber,
-			&pm.TransactionCurrency,
-			&pm.BusinessPartnerCurrency,
-			&pm.GrossAmount,
-			&pm.PricingDate,
-			&pm.TaxAmount,
-			&pm.ProductTaxClassification1,
-			&pm.BusinessArea,
-			&pm.ProfitCenter,
-			&pm.Project,
 			&pm.OrderID,
 			&pm.OrderItem,
-			&pm.OrderType,
-			&pm.ContractType,
-			&pm.OrderVaridityStartDate,
-			&pm.OrderValidityEndDate,
-			&pm.InvoiceScheduleStartDate,
-			&pm.InvoiceScheduleEndDate,
-			&pm.DeliveryDocument,
-			&pm.DeliveryDocumentItem,
-			&pm.OriginDocument,
-			&pm.OriginDocumentItem,
-			&pm.ReferenceDocument,
-			&pm.ReferenceDocumentItem,
-			&pm.ReferenceDocumentType,
-			&pm.ExternalReferenceDocument,
-			&pm.ExternalReferenceDocumentItem,
-			&pm.OrderSalesOrganization,
-			&pm.OrderPurchaseOrganization,
-			&pm.OrderDistributionChannel,
+			&pm.OrderItemCategory,
+			&pm.OrderItemText,
+			&pm.OrderItemTextByBuyer,
+			&pm.OrderItemTextBySeller,
+			&pm.Product,
+			&pm.ProductStandardID,
+			&pm.ProductGroup,
+			&pm.BaseUnit,
+			&pm.PricingDate,
+			&pm.OrderQuantityInBaseUnit,
+			&pm.ItemWeightUnit,
+			&pm.ItemGrossWeight,
+			&pm.ItemNetWeight,
+			&pm.NetAmount,
+			&pm.TaxAmount,
+			&pm.GrossAmount,
+			&pm.ProductionPlantPartnerFunction,
+			&pm.ProductionPlantBusinessPartner,
+			&pm.ProductionPlant,
+			&pm.ProductionPlantStorageLocation,
+			&pm.IssuingPlantPartnerFunction,
+			&pm.IssuingPlantBusinessPartner,
+			&pm.IssuingPlant,
+			&pm.IssuingPlantStorageLocation,
+			&pm.ReceivingPlantPartnerFunction,
+			&pm.ReceivingPlantBusinessPartner,
+			&pm.ReceivingPlant,
+			&pm.ReceivingPlantStorageLocation,
+			&pm.Incoterms,
+			&pm.ProductTaxClassification,
+			&pm.PaymentTerms,
+			&pm.PaymentMethod,
+			&pm.Project,
 			&pm.TaxCode,
 			&pm.TaxRate,
 			&pm.CountryOfOrigin,
@@ -314,76 +760,161 @@ func (psdc *SDC) ConvertToOrderItem(
 		}
 
 		data := pm
-		orderItem = append(orderItem, OrderItem{
-			ItemInvoiceDocumentStatus:     data.ItemInvoiceDocumentStatus,
-			InvoiceDocumentItem:           data.InvoiceDocumentItem,
-			DocumentItemCategory:          data.DocumentItemCategory,
-			CreationDate:                  data.CreationDate,
-			CreationTime:                  data.CreationTime,
-			Division:                      data.Division,
-			Customer:                      data.Customer,
-			Supplier:                      data.Supplier,
-			DeliverToParty:                data.DeliverToParty,
-			DeliverFromParty:              data.DeliverFromParty,
-			Product:                       data.Product,
-			ProductStandardID:             data.ProductStandardID,
-			Batch:                         data.Batch,
-			ProductGroup:                  data.ProductGroup,
-			IssuingPlant:                  data.IssuingPlant,
-			IssuingPlantStorageLocation:   data.IssuingPlantStorageLocation,
-			ReceivingPlant:                data.ReceivingPlant,
-			ReceivingPlantStorageLocation: data.ReceivingPlantStorageLocation,
-			InvoiceDocumentItemText:       data.InvoiceDocumentItemText,
-			ServicesRenderedDate:          data.ServicesRenderedDate,
-			InvoiceQuantity:               data.InvoiceQuantity,
-			InvoiceQuantityUnit:           data.InvoiceQuantityUnit,
-			InvoiceQuantityInBaseUnit:     data.InvoiceQuantityInBaseUnit,
-			BaseUnit:                      data.BaseUnit,
-			ActualGoodsIssueDate:          data.ActualGoodsIssueDate,
-			ActualGoodsIssueTime:          data.ActualGoodsIssueTime,
-			ActualGoodsReceiptDate:        data.ActualGoodsReceiptDate,
-			ActualGoodsReceiptTime:        data.ActualGoodsReceiptTime,
-			ItemGrossWeight:               data.ItemGrossWeight,
-			ItemNetWeight:                 data.ItemNetWeight,
-			ItemWeightUnit:                data.ItemWeightUnit,
-			ItemVolume:                    data.ItemVolume,
-			ItemVolumeUnit:                data.ItemVolumeUnit,
-			NetAmount:                     data.NetAmount,
-			GoodsIssueOrReceiptSlipNumber: data.GoodsIssueOrReceiptSlipNumber,
-			TransactionCurrency:           data.TransactionCurrency,
-			BusinessPartnerCurrency:       data.BusinessPartnerCurrency,
-			GrossAmount:                   data.GrossAmount,
-			PricingDate:                   data.PricingDate,
-			TaxAmount:                     data.TaxAmount,
-			ProductTaxClassification1:     data.ProductTaxClassification1,
-			BusinessArea:                  data.BusinessArea,
-			ProfitCenter:                  data.ProfitCenter,
-			Project:                       data.Project,
-			OrderID:                       data.OrderID,
-			OrderItem:                     data.OrderItem,
-			OrderType:                     data.OrderType,
-			ContractType:                  data.ContractType,
-			OrderVaridityStartDate:        data.OrderVaridityStartDate,
-			OrderValidityEndDate:          data.OrderValidityEndDate,
-			InvoiceScheduleStartDate:      data.InvoiceScheduleStartDate,
-			InvoiceScheduleEndDate:        data.InvoiceScheduleEndDate,
-			DeliveryDocument:              data.DeliveryDocument,
-			DeliveryDocumentItem:          data.DeliveryDocumentItem,
-			OriginDocument:                data.OriginDocument,
-			OriginDocumentItem:            data.OriginDocumentItem,
-			ReferenceDocument:             data.ReferenceDocument,
-			ReferenceDocumentItem:         data.ReferenceDocumentItem,
-			ReferenceDocumentType:         data.ReferenceDocumentType,
-			ExternalReferenceDocument:     data.ExternalReferenceDocument,
-			ExternalReferenceDocumentItem: data.ExternalReferenceDocumentItem,
-			OrderSalesOrganization:        data.OrderSalesOrganization,
-			OrderPurchaseOrganization:     data.OrderPurchaseOrganization,
-			OrderDistributionChannel:      data.OrderDistributionChannel,
-			TaxCode:                       data.TaxCode,
-			TaxRate:                       data.TaxRate,
-			CountryOfOrigin:               data.CountryOfOrigin,
+		itemOrdersItem = append(itemOrdersItem, ItemOrdersItem{
+			OrderID:                        data.OrderID,
+			OrderItem:                      data.OrderItem,
+			OrderItemCategory:              data.OrderItemCategory,
+			OrderItemText:                  data.OrderItemText,
+			OrderItemTextByBuyer:           data.OrderItemTextByBuyer,
+			OrderItemTextBySeller:          data.OrderItemTextBySeller,
+			Product:                        data.Product,
+			ProductStandardID:              data.ProductStandardID,
+			ProductGroup:                   data.ProductGroup,
+			BaseUnit:                       data.BaseUnit,
+			PricingDate:                    data.PricingDate,
+			OrderQuantityInBaseUnit:        data.OrderQuantityInBaseUnit,
+			ItemWeightUnit:                 data.ItemWeightUnit,
+			ItemGrossWeight:                data.ItemGrossWeight,
+			ItemNetWeight:                  data.ItemNetWeight,
+			NetAmount:                      data.NetAmount,
+			TaxAmount:                      data.TaxAmount,
+			GrossAmount:                    data.GrossAmount,
+			ProductionPlantPartnerFunction: data.ProductionPlantPartnerFunction,
+			ProductionPlantBusinessPartner: data.ProductionPlantBusinessPartner,
+			ProductionPlant:                data.ProductionPlant,
+			ProductionPlantStorageLocation: data.ProductionPlantStorageLocation,
+			IssuingPlantPartnerFunction:    data.IssuingPlantPartnerFunction,
+			IssuingPlantBusinessPartner:    data.IssuingPlantBusinessPartner,
+			IssuingPlant:                   data.IssuingPlant,
+			IssuingPlantStorageLocation:    data.IssuingPlantStorageLocation,
+			ReceivingPlantPartnerFunction:  data.ReceivingPlantPartnerFunction,
+			ReceivingPlantBusinessPartner:  data.ReceivingPlantBusinessPartner,
+			ReceivingPlant:                 data.ReceivingPlant,
+			ReceivingPlantStorageLocation:  data.ReceivingPlantStorageLocation,
+			Incoterms:                      data.Incoterms,
+			ProductTaxClassification:       data.ProductTaxClassification,
+			PaymentTerms:                   data.PaymentTerms,
+			PaymentMethod:                  data.PaymentMethod,
+			Project:                        data.Project,
+			TaxCode:                        data.TaxCode,
+			TaxRate:                        data.TaxRate,
+			CountryOfOrigin:                data.CountryOfOrigin,
 		})
 	}
 
-	return &orderItem, nil
+	return &itemOrdersItem, nil
+}
+
+func (psdc *SDC) ConvertToItemDeliveryDocumentItem(
+	sdc *api_input_reader.SDC,
+	rows *sql.Rows,
+) (*[]ItemDeliveryDocumentItem, error) {
+	var itemDeliveryDocumentItem []ItemDeliveryDocumentItem
+
+	pm := &requests.ItemDeliveryDocumentItem{}
+
+	for i := 0; true; i++ {
+		if !rows.Next() {
+			if i == 0 {
+				return nil, fmt.Errorf("DBに対象のレコードが存在しません。")
+			} else {
+				break
+			}
+		}
+		err := rows.Scan(
+			&pm.DeliveryDocument,
+			&pm.DeliveryDocumentItem,
+			&pm.DeliveryDocumentItemCategory,
+			&pm.DeliveryDocumentItemText,
+			&pm.Product,
+			&pm.ProductStandardID,
+			&pm.ProductGroup,
+			&pm.BaseUnit,
+			&pm.ActualGoodsIssueDate,
+			&pm.ActualGoodsIssueTime,
+			&pm.ActualGoodsReceiptDate,
+			&pm.ActualGoodsReceiptTime,
+			&pm.ProductionPlantPartnerFunction,
+			&pm.ProductionPlantBusinessPartner,
+			&pm.ProductionPlant,
+			&pm.ProductionPlantStorageLocation,
+			&pm.IssuingPlantPartnerFunction,
+			&pm.IssuingPlantBusinessPartner,
+			&pm.IssuingPlant,
+			&pm.IssuingPlantStorageLocation,
+			&pm.ReceivingPlantPartnerFunction,
+			&pm.ReceivingPlantBusinessPartner,
+			&pm.ReceivingPlant,
+			&pm.ReceivingPlantStorageLocation,
+			&pm.ItemGrossWeight,
+			&pm.ItemNetWeight,
+			&pm.ItemWeightUnit,
+			&pm.OrderID,
+			&pm.OrderItem,
+			&pm.OrderType,
+			&pm.ContractType,
+			&pm.OrderValidityStartDate,
+			&pm.OrderValidityEndDate,
+			&pm.PaymentTerms,
+			&pm.PaymentMethod,
+			&pm.InvoicePeriodStartDate,
+			&pm.InvoicePeriodEndDate,
+			&pm.Project,
+			&pm.ProductTaxClassification,
+			&pm.TaxCode,
+			&pm.TaxRate,
+			&pm.CountryOfOrigin,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		data := pm
+		itemDeliveryDocumentItem = append(itemDeliveryDocumentItem, ItemDeliveryDocumentItem{
+			DeliveryDocument:               data.DeliveryDocument,
+			DeliveryDocumentItem:           data.DeliveryDocumentItem,
+			DeliveryDocumentItemCategory:   data.DeliveryDocumentItemCategory,
+			DeliveryDocumentItemText:       data.DeliveryDocumentItemText,
+			Product:                        data.Product,
+			ProductStandardID:              data.ProductStandardID,
+			ProductGroup:                   data.ProductGroup,
+			BaseUnit:                       data.BaseUnit,
+			ActualGoodsIssueDate:           data.ActualGoodsIssueDate,
+			ActualGoodsIssueTime:           data.ActualGoodsIssueTime,
+			ActualGoodsReceiptDate:         data.ActualGoodsReceiptDate,
+			ActualGoodsReceiptTime:         data.ActualGoodsReceiptTime,
+			ProductionPlantPartnerFunction: data.ProductionPlantPartnerFunction,
+			ProductionPlantBusinessPartner: data.ProductionPlantBusinessPartner,
+			ProductionPlant:                data.ProductionPlant,
+			ProductionPlantStorageLocation: data.ProductionPlantStorageLocation,
+			IssuingPlantPartnerFunction:    data.IssuingPlantPartnerFunction,
+			IssuingPlantBusinessPartner:    data.IssuingPlantBusinessPartner,
+			IssuingPlant:                   data.IssuingPlant,
+			IssuingPlantStorageLocation:    data.IssuingPlantStorageLocation,
+			ReceivingPlantPartnerFunction:  data.ReceivingPlantPartnerFunction,
+			ReceivingPlantBusinessPartner:  data.ReceivingPlantBusinessPartner,
+			ReceivingPlant:                 data.ReceivingPlant,
+			ReceivingPlantStorageLocation:  data.ReceivingPlantStorageLocation,
+			ItemGrossWeight:                data.ItemGrossWeight,
+			ItemNetWeight:                  data.ItemNetWeight,
+			ItemWeightUnit:                 data.ItemWeightUnit,
+			OrderID:                        data.OrderID,
+			OrderItem:                      data.OrderItem,
+			OrderType:                      data.OrderType,
+			ContractType:                   data.ContractType,
+			OrderValidityStartDate:         data.OrderValidityStartDate,
+			OrderValidityEndDate:           data.OrderValidityEndDate,
+			PaymentTerms:                   data.PaymentTerms,
+			PaymentMethod:                  data.PaymentMethod,
+			InvoicePeriodStartDate:         data.InvoicePeriodStartDate,
+			InvoicePeriodEndDate:           data.InvoicePeriodEndDate,
+			Project:                        data.Project,
+			ProductTaxClassification:       data.ProductTaxClassification,
+			TaxCode:                        data.TaxCode,
+			TaxRate:                        data.TaxRate,
+			CountryOfOrigin:                data.CountryOfOrigin,
+		})
+	}
+
+	return &itemDeliveryDocumentItem, nil
 }

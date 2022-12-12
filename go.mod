@@ -1,4 +1,4 @@
-module data-platform-api-invoice-document-headers-creates-subfunc-rmq
+module data-platform-api-invoice-document-items-creates-subfunc-rmq
 
 go 1.19
 

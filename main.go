@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	api_input_reader "data-platform-api-invoice-document-headers-creates-subfunc-rmq/API_Input_Reader"
-	dpfm_api_output_formatter "data-platform-api-invoice-document-headers-creates-subfunc-rmq/API_Output_Formatter"
-	api_processing_data_formatter "data-platform-api-invoice-document-headers-creates-subfunc-rmq/API_Processing_Data_Formatter"
-	"data-platform-api-invoice-document-headers-creates-subfunc-rmq/config"
-	"data-platform-api-invoice-document-headers-creates-subfunc-rmq/subfunction"
+	api_input_reader "data-platform-api-invoice-document-items-creates-subfunc-rmq/API_Input_Reader"
+	dpfm_api_output_formatter "data-platform-api-invoice-document-items-creates-subfunc-rmq/API_Output_Formatter"
+	api_processing_data_formatter "data-platform-api-invoice-document-items-creates-subfunc-rmq/API_Processing_Data_Formatter"
+	"data-platform-api-invoice-document-items-creates-subfunc-rmq/config"
+	"data-platform-api-invoice-document-items-creates-subfunc-rmq/subfunction"
 
 	"fmt"
 

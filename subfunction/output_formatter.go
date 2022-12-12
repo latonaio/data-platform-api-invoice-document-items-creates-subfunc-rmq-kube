@@ -1,9 +1,10 @@
 package subfunction
 
 import (
-	api_input_reader "data-platform-api-invoice-document-headers-creates-subfunc-rmq/API_Input_Reader"
-	dpfm_api_output_formatter "data-platform-api-invoice-document-headers-creates-subfunc-rmq/API_Output_Formatter"
-	api_processing_data_formatter "data-platform-api-invoice-document-headers-creates-subfunc-rmq/API_Processing_Data_Formatter"
+	api_input_reader "data-platform-api-invoice-document-items-creates-subfunc-rmq/API_Input_Reader"
+	dpfm_api_output_formatter "data-platform-api-invoice-document-items-creates-subfunc-rmq/API_Output_Formatter"
+	api_processing_data_formatter "data-platform-api-invoice-document-items-creates-subfunc-rmq/API_Processing_Data_Formatter"
+	"fmt"
 )
 
 func (f *SubFunction) SetValue(
@@ -11,9 +12,18 @@ func (f *SubFunction) SetValue(
 	psdc *api_processing_data_formatter.SDC,
 	osdc *dpfm_api_output_formatter.SDC,
 ) (*dpfm_api_output_formatter.SDC, error) {
-	// var err error
+	var outItem *[]dpfm_api_output_formatter.Item
+	var err error
 
-	osdc.Message = dpfm_api_output_formatter.Message{}
+	outItem, err = dpfm_api_output_formatter.ConvertToItem(sdc, psdc)
+	if err != nil {
+		fmt.Printf("err = %+v \n", err)
+		return nil, err
+	}
+
+	osdc.Message = dpfm_api_output_formatter.Message{
+		Item: *outItem,
+	}
 
 	return osdc, nil
 }
