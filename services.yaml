@@ -24,7 +24,7 @@ spec:
             - name: data
               mountPath: /var/lib/aion/Data
             - name: ui
-              mountPath: /var/lib/aion/UI/data-platform-api-invoice-document-items-creates-subfunc/public/
+              mountPath: /var/lib/aion/UI/data-platform-api-invoice-document-items-creates-subfunc-rmq-kube/public/
           env:
             - name : "RMQ_QUEUE_FROM"
               value: "data-platform-api-invoice-document-items-creates-subfunc-queue"
@@ -43,7 +43,7 @@ spec:
             path: /var/lib/aion/default/Data
         - name: ui
           hostPath:
-            path: /var/lib/aion/UI/data-platform-api-invoice-document-items-creates-subfunc/public/
+            path: /var/lib/aion/UI/data-platform-api-invoice-document-items-creates-subfunc-rmq-kube/public/
 ---
 apiVersion: v1
 kind: Service
@@ -60,4 +60,4 @@ spec:
       port: 8080
       protocol: TCP
       targetPort: 8080
-      nodePort: 30914
+      nodePort: 30912

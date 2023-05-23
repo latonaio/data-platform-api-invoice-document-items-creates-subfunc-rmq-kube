@@ -1,16 +1,15 @@
 package requests
 
 type OrderID struct {
-	InvoiceDocument                 *int   `json:"InvoiceDocument"`
-	OrderID                         *int   `json:"OrderID"`
-	BillFromPartyFrom               *int   `json:"BillFromPartyFrom"`
-	BillFromPartyTo                 *int   `json:"BillFromPartyTo"`
-	BillToPartyFrom                 *int   `json:"BillToPartyFrom"`
-	BillToPartyTo                   *int   `json:"BillToPartyTo"`
-	BillFromParty                   *int   `json:"BillFromParty"`
-	BillToParty                     *int   `json:"BillToParty"`
-	HeaderCompleteDeliveryIsDefined *bool  `json:"HeaderCompleteDeliveryIsDefined"`
-	HeaderDeliveryStatus            string `json:"HeaderDeliveryStatus"`
-	HeaderBillingStatus             string `json:"HeaderBillingStatus"`
-	HeaderBillingBlockStatus        *bool  `json:"HeaderBillingBlockStatus"`
+	OrderID                       int     `json:"OrderID"`
+	OrderItem                     int     `json:"OrderItem"`
+	IssuingPlantPartnerFunction   *string `json:"IssuingPlantPartnerFunction"`
+	IssuingPlantBusinessPartner   *int    `json:"IssuingPlantBusinessPartner"`
+	ReceivingPlantPartnerFunction *string `json:"ReceivingPlantPartnerFunction"`
+	ReceivingPlantBusinessPartner *int    `json:"ReceivingPlantBusinessPartner"`
+	IssuingPlant                  *int    `json:"IssuingPlant"`
+	ReceivingPlant                *int    `json:"ReceivingPlant"`
+	ItemCompleteDeliveryIsDefined *bool   `json:"ItemCompleteDeliveryIsDefined"`
+	ItemDeliveryStatus            *string `json:"ItemDeliveryStatus"`
+	ItemDeliveryBlockStatus       *bool   `json:"ItemDeliveryBlockStatus"`
 }

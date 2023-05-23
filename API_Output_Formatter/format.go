@@ -1,8 +1,8 @@
 package dpfm_api_output_formatter
 
 import (
-	api_input_reader "data-platform-api-invoice-document-items-creates-subfunc-rmq/API_Input_Reader"
-	api_processing_data_formatter "data-platform-api-invoice-document-items-creates-subfunc-rmq/API_Processing_Data_Formatter"
+	api_input_reader "data-platform-api-invoice-document-items-creates-subfunc/API_Input_Reader"
+	api_processing_data_formatter "data-platform-api-invoice-document-items-creates-subfunc/API_Processing_Data_Formatter"
 	"encoding/json"
 )
 
@@ -10,20 +10,14 @@ func ConvertToItem(
 	sdc *api_input_reader.SDC,
 	psdc *api_processing_data_formatter.SDC,
 ) (*[]Item, error) {
-	orderID := psdc.OrderID
-	calculateInvoiceDocument := psdc.CalculateInvoiceDocument
-	itemOrdersItem := psdc.ItemOrdersItem
-	items := make([]Item, 0, len(*itemOrdersItem))
+	ordersItem := psdc.OrdersItem
+	calculateDeliveryDocument := psdc.CalculateDeliveryDocument
+	deliveryDocumentItem := psdc.DeliveryDocumentItem
+	items := make([]Item, 0, len(*ordersItem))
 
-	orderIDMap := make(map[int]api_processing_data_formatter.OrderID, len(*orderID))
-
-	for _, v := range *orderID {
-		orderIDMap[*v.OrderID] = v
-	}
-
-	for _, v := range *itemOrdersItem {
+	for i, v := range *ordersItem {
 		item := Item{}
-		inputItem := sdc.InvoiceDocument.InvoiceDocumentItem[0]
+		inputItem := sdc.DeliveryDocument.DeliveryDocumentItem[0]
 		inputData, err := json.Marshal(inputItem)
 		if err != nil {
 			return nil, err
@@ -42,7 +36,8 @@ func ConvertToItem(
 			return nil, err
 		}
 
-		item.InvoiceDocument = *calculateInvoiceDocument.InvoiceDocumentLatestNumber
+		item.DeliveryDocument = calculateDeliveryDocument.DeliveryDocument
+		item.DeliveryDocumentItem = (*deliveryDocumentItem)[i].DeliveryDocumentItemNumber
 		items = append(items, item)
 	}
 
